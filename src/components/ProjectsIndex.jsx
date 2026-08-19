@@ -1,7 +1,7 @@
 import { memo } from 'react';
 
 function ProjectsIndex({ projects, onSelect }) {
-  const cityCount = new Set(projects.map((project) => project.city)).size;
+  const cityCount = new Set(projects.map((project) => project.clusterCity ?? project.city)).size;
 
   return (
     <section className="projects-index" id="projects" aria-labelledby="projects-index-title">
@@ -43,4 +43,3 @@ function ProjectsIndex({ projects, onSelect }) {
 }
 
 export default memo(ProjectsIndex);
-

@@ -271,24 +271,44 @@ function GlobeCanvas({ projects, onHover, onSelect }) {
       }));
       const groups = new Map();
       for (const item of visibleProjects) {
-        const key = item.project.city;
+        const key = item.project.clusterCity ?? item.project.city;
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(item.project);
       }
 
-      for (const cityProjects of groups.values()) {
+      for (const [clusterCity, cityProjects] of groups) {
         const first = cityProjects[0];
-        const basePoint = project(first.lon, first.lat, ...pState);
+        const projectedProjects = cityProjects.map((item) => ({
+          item,
+          point: project(item.lon, item.lat, ...pState),
+        }));
+        const visibleCityProjects = projectedProjects.filter(({ point }) => point.z > 0.03);
+        if (!visibleCityProjects.length) continue;
+        const basePoint = visibleCityProjects.reduce((center, { point }) => ({
+          x: center.x + point.x / visibleCityProjects.length,
+          y: center.y + point.y / visibleCityProjects.length,
+          z: center.z + point.z / visibleCityProjects.length,
+        }), { x: 0, y: 0, z: 0 });
         if (basePoint.z <= 0.03) continue;
         const clustered = cityProjects.length > 1 && s.zoom < 1.34;
-        const renderProjects = clustered ? [first] : cityProjects;
-        renderProjects.forEach((item, index) => {
-          const spread = clustered ? 0 : (index - (renderProjects.length - 1) / 2) * 13;
-          const x = basePoint.x + spread;
-          const y = basePoint.y + (clustered ? 0 : Math.abs(spread) * 0.25);
-          const hitId = clustered ? `cluster-${first.city}` : item.id;
+        const renderProjects = clustered ? visibleCityProjects.slice(0, 1) : visibleCityProjects;
+        renderProjects.forEach(({ item, point }, index) => {
+          const spread = clustered || renderProjects.length === 1
+            ? 0
+            : (index - (renderProjects.length - 1) / 2) * 30;
+          const x = clustered ? basePoint.x : point.x + spread;
+          const y = clustered ? basePoint.y : point.y + Math.abs(spread) * 0.18;
+          const hitId = clustered ? `cluster-${clusterCity}` : item.id;
           const isHovered = s.hovered === hitId;
           const r = clustered ? 16 : isHovered ? 6 : 4;
+          if (!clustered && Math.hypot(x - point.x, y - point.y) > 3) {
+            ctx.beginPath();
+            ctx.moveTo(point.x, point.y);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = 'rgba(237,233,223,.34)';
+            ctx.lineWidth = 0.7;
+            ctx.stroke();
+          }
           if (!clustered || isHovered) {
             ctx.beginPath();
             ctx.arc(x, y, r + (isHovered ? 3 : 1.5), 0, Math.PI * 2);
@@ -316,6 +336,7 @@ function GlobeCanvas({ projects, onHover, onSelect }) {
             radius: (clustered ? 23 : 16) + Math.max(0, 1 - basePoint.z) * 7,
             project: item,
             cluster: clustered ? cityProjects : null,
+            clusterCity,
           });
         });
       }
@@ -368,6 +389,7 @@ function GlobeCanvas({ projects, onHover, onSelect }) {
             ? {
                 project: hit.project,
                 cluster: hit.cluster,
+                clusterCity: hit.clusterCity,
                 screen: { x: rect.left + hit.x, y: rect.top + hit.y },
               }
             : null,
@@ -440,4 +462,3 @@ function GlobeCanvas({ projects, onHover, onSelect }) {
 }
 
 export default memo(GlobeCanvas);
-

@@ -9,7 +9,7 @@ import { projects } from './data/projects';
 
 const PAGE_ORDER = ['index', 'projects', 'about', 'contact'];
 const PAGE_HASH = { index: '#home', projects: '#projects', about: '#about', contact: '#contact' };
-const CITY_COUNT = new Set(projects.map((project) => project.city)).size;
+const CITY_COUNT = new Set(projects.map((project) => project.clusterCity ?? project.city)).size;
 
 export default function App() {
   const [page, setPage] = useState(() => {
@@ -168,4 +168,3 @@ export default function App() {
     </main>
   );
 }
-

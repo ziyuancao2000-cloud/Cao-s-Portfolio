@@ -2,6 +2,7 @@ export default function ProjectPreview({ hover }) {
   if (!hover) return null;
   const project = hover.project;
   const cluster = hover.cluster;
+  const clusterCity = hover.clusterCity ?? project.city;
   const cardWidth = window.innerWidth <= 900 ? Math.min(300, window.innerWidth - 32) : 340;
   const gap = 28;
   const preferredLeft = hover.screen.x > window.innerWidth * 0.56
@@ -18,11 +19,11 @@ export default function ProjectPreview({ hover }) {
     >
       <div className="project-preview__image-wrap">
         <img src={project.image} alt="" className="project-preview__image" />
-        <span className="project-preview__index">{cluster ? `03 / ${project.city}` : project.year}</span>
+        <span className="project-preview__index">{cluster ? `03 / ${clusterCity}` : project.year}</span>
       </div>
       <div className="project-preview__body">
-        <p className="project-preview__place">{project.city}, {project.country}</p>
-        <h2>{cluster ? `${cluster.length} projects in ${project.city}` : project.title}</h2>
+        <p className="project-preview__place">{cluster ? clusterCity : project.city}, {project.country}</p>
+        <h2>{cluster ? `${cluster.length} projects in ${clusterCity}` : project.title}</h2>
         {cluster ? (
           <p className="project-preview__cluster-hint">Click the marker to separate</p>
         ) : (
@@ -32,4 +33,3 @@ export default function ProjectPreview({ hover }) {
     </aside>
   );
 }
-

@@ -801,6 +801,13 @@ button { color: inherit; }
 
 @keyframes detail-in { from { opacity: 0; transform: translateY(12px); } }
 
+.project-detail--closing {
+  pointer-events: none;
+  animation: detail-out 360ms cubic-bezier(.4,0,.2,1) both;
+}
+
+@keyframes detail-out { to { opacity: 0; transform: translateY(12px); } }
+
 .project-detail__close {
   position: fixed;
   z-index: 5;
@@ -966,4 +973,3 @@ button { color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; scroll-behavior: auto !important; }
 }
-
