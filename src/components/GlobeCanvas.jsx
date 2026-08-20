@@ -361,7 +361,6 @@ function GlobeCanvas({ projects, onHover, onSelect }) {
 
       markerHits.length = 0;
       const expanded = s.zoom >= CLUSTER_BREAK_ZOOM;
-      canvas.dataset.markerMode = expanded ? 'project' : 'regional';
 
       for (const region of propsRef.current.regions) {
         const regionProjects = region.projects;
@@ -426,7 +425,6 @@ function GlobeCanvas({ projects, onHover, onSelect }) {
         });
       }
 
-      canvas.dataset.visibleMarkerCount = String(markerHits.length);
 
       frame = requestAnimationFrame(draw);
     };
