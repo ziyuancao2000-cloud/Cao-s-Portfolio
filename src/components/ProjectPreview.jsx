@@ -19,7 +19,7 @@ export default function ProjectPreview({ hover }) {
     >
       <div className="project-preview__image-wrap">
         <img src={project.image} alt="" className="project-preview__image" />
-        <span className="project-preview__index">{cluster ? `03 / ${clusterCity}` : project.year}</span>
+        <span className="project-preview__index">{cluster ? `${String(cluster.length).padStart(2, '0')} / ${clusterCity}` : project.year}</span>
       </div>
       <div className="project-preview__body">
         <p className="project-preview__place">{cluster ? clusterCity : project.city}, {project.country}</p>

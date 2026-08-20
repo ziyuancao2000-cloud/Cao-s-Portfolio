@@ -1,9 +1,13 @@
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { feature } from 'topojson-client';
 import landTopology from 'world-atlas/land-110m.json';
 
 const DEG = Math.PI / 180;
+const EARTH_RADIUS_KM = 6371;
+const REGION_CLUSTER_RADIUS_KM = 80;
+const CLUSTER_BREAK_ZOOM = 1.34;
+const EXPANDED_MARKER_GAP = 22;
 
 const landFeature = feature(landTopology, landTopology.objects.land);
 const landGeometries = landFeature.type === 'FeatureCollection'
@@ -41,7 +45,99 @@ function drawGeoLine(ctx, points, state, stroke, width) {
   ctx.stroke();
 }
 
+function geographicDistanceKm(a, b) {
+  const latA = a.lat * DEG;
+  const latB = b.lat * DEG;
+  const deltaLat = (b.lat - a.lat) * DEG;
+  const deltaLon = (b.lon - a.lon) * DEG;
+  const sinLat = Math.sin(deltaLat / 2);
+  const sinLon = Math.sin(deltaLon / 2);
+  const h = sinLat * sinLat + Math.cos(latA) * Math.cos(latB) * sinLon * sinLon;
+  const boundedH = Math.min(1, h);
+  return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(boundedH), Math.sqrt(1 - boundedH));
+}
+
+function getRegionLabel(regionProjects) {
+  const counts = new Map();
+  for (const projectItem of regionProjects) {
+    const label = projectItem.clusterCity ?? projectItem.city;
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  return [...counts].reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0];
+}
+
+function groupNearbyProjects(projectItems) {
+  const locatedProjects = projectItems.filter(
+    ({ lat, lon }) => Number.isFinite(lat) && Number.isFinite(lon),
+  );
+  const visited = new Set();
+  const regions = [];
+
+  for (const projectItem of locatedProjects) {
+    if (visited.has(projectItem.id)) continue;
+    const regionProjects = [];
+    const queue = [projectItem];
+    visited.add(projectItem.id);
+
+    while (queue.length) {
+      const current = queue.shift();
+      regionProjects.push(current);
+      for (const candidate of locatedProjects) {
+        if (visited.has(candidate.id)) continue;
+        if (geographicDistanceKm(current, candidate) <= REGION_CLUSTER_RADIUS_KM) {
+          visited.add(candidate.id);
+          queue.push(candidate);
+        }
+      }
+    }
+
+    regions.push({
+      id: regionProjects.map(({ id }) => id).join('--'),
+      label: getRegionLabel(regionProjects),
+      projects: regionProjects,
+    });
+  }
+
+  return regions;
+}
+
+function spreadOverlappingMarkers(projectedProjects) {
+  const markers = projectedProjects.map(({ item, point }) => ({
+    item,
+    point,
+    x: point.x,
+    y: point.y,
+  }));
+
+  for (let iteration = 0; iteration < 14; iteration += 1) {
+    for (let i = 0; i < markers.length; i += 1) {
+      for (let j = i + 1; j < markers.length; j += 1) {
+        let dx = markers[j].x - markers[i].x;
+        let dy = markers[j].y - markers[i].y;
+        let distance = Math.hypot(dx, dy);
+        if (distance >= EXPANDED_MARKER_GAP) continue;
+        if (distance < 0.01) {
+          const angle = ((i + 1) * 2.39996) % (Math.PI * 2);
+          dx = Math.cos(angle);
+          dy = Math.sin(angle);
+          distance = 1;
+        }
+        const offset = (EXPANDED_MARKER_GAP - distance) / 2;
+        const nx = dx / distance;
+        const ny = dy / distance;
+        markers[i].x -= nx * offset;
+        markers[i].y -= ny * offset;
+        markers[j].x += nx * offset;
+        markers[j].y += ny * offset;
+      }
+    }
+  }
+
+  return markers;
+}
+
 function GlobeCanvas({ projects, onHover, onSelect }) {
+  const regions = useMemo(() => groupNearbyProjects(projects), [projects]);
   const terrainRef = useRef(null);
   const canvasRef = useRef(null);
   const stateRef = useRef({
@@ -61,8 +157,8 @@ function GlobeCanvas({ projects, onHover, onSelect }) {
     cy: 0,
     radius: 0,
   });
-  const propsRef = useRef({ projects, onHover, onSelect });
-  propsRef.current = { projects, onHover, onSelect };
+  const propsRef = useRef({ regions, onHover, onSelect });
+  propsRef.current = { regions, onHover, onSelect };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -264,41 +360,30 @@ function GlobeCanvas({ projects, onHover, onSelect }) {
       ctx.restore();
 
       markerHits.length = 0;
-      const visibleProjects = propsRef.current.projects.map((project, index) => ({
-        project,
-        index,
-        p: project.lon === undefined ? null : project,
-      }));
-      const groups = new Map();
-      for (const item of visibleProjects) {
-        const key = item.project.clusterCity ?? item.project.city;
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(item.project);
-      }
+      const expanded = s.zoom >= CLUSTER_BREAK_ZOOM;
+      canvas.dataset.markerMode = expanded ? 'project' : 'regional';
 
-      for (const [clusterCity, cityProjects] of groups) {
-        const first = cityProjects[0];
-        const projectedProjects = cityProjects.map((item) => ({
+      for (const region of propsRef.current.regions) {
+        const regionProjects = region.projects;
+        const projectedProjects = regionProjects.map((item) => ({
           item,
           point: project(item.lon, item.lat, ...pState),
         }));
-        const visibleCityProjects = projectedProjects.filter(({ point }) => point.z > 0.03);
-        if (!visibleCityProjects.length) continue;
-        const basePoint = visibleCityProjects.reduce((center, { point }) => ({
-          x: center.x + point.x / visibleCityProjects.length,
-          y: center.y + point.y / visibleCityProjects.length,
-          z: center.z + point.z / visibleCityProjects.length,
+        const visibleRegionProjects = projectedProjects.filter(({ point }) => point.z > 0.03);
+        if (!visibleRegionProjects.length) continue;
+        const basePoint = visibleRegionProjects.reduce((center, { point }) => ({
+          x: center.x + point.x / visibleRegionProjects.length,
+          y: center.y + point.y / visibleRegionProjects.length,
+          z: center.z + point.z / visibleRegionProjects.length,
         }), { x: 0, y: 0, z: 0 });
         if (basePoint.z <= 0.03) continue;
-        const clustered = cityProjects.length > 1 && s.zoom < 1.34;
-        const renderProjects = clustered ? visibleCityProjects.slice(0, 1) : visibleCityProjects;
-        renderProjects.forEach(({ item, point }, index) => {
-          const spread = clustered || renderProjects.length === 1
-            ? 0
-            : (index - (renderProjects.length - 1) / 2) * 30;
-          const x = clustered ? basePoint.x : point.x + spread;
-          const y = clustered ? basePoint.y : point.y + Math.abs(spread) * 0.18;
-          const hitId = clustered ? `cluster-${clusterCity}` : item.id;
+        const clustered = regionProjects.length > 1 && !expanded;
+        const renderMarkers = clustered
+          ? [{ ...visibleRegionProjects[0], x: basePoint.x, y: basePoint.y }]
+          : spreadOverlappingMarkers(visibleRegionProjects);
+
+        renderMarkers.forEach(({ item, point, x, y }) => {
+          const hitId = clustered ? `cluster-${region.id}` : item.id;
           const isHovered = s.hovered === hitId;
           const r = clustered ? 16 : isHovered ? 6 : 4;
           if (!clustered && Math.hypot(x - point.x, y - point.y) > 3) {
@@ -327,7 +412,7 @@ function GlobeCanvas({ projects, onHover, onSelect }) {
             ctx.font = '800 15px "Cascadia Mono", ui-monospace, monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(String(cityProjects.length), x, y + 0.25);
+            ctx.fillText(String(regionProjects.length), x, y + 0.25);
           }
           markerHits.push({
             id: hitId,
@@ -335,11 +420,13 @@ function GlobeCanvas({ projects, onHover, onSelect }) {
             y,
             radius: (clustered ? 23 : 16) + Math.max(0, 1 - basePoint.z) * 7,
             project: item,
-            cluster: clustered ? cityProjects : null,
-            clusterCity,
+            cluster: clustered ? regionProjects : null,
+            clusterCity: region.label,
           });
         });
       }
+
+      canvas.dataset.visibleMarkerCount = String(markerHits.length);
 
       frame = requestAnimationFrame(draw);
     };
@@ -412,6 +499,8 @@ function GlobeCanvas({ projects, onHover, onSelect }) {
         if (hit.cluster) {
           s.zoom = Math.max(s.zoom, 1.55);
           s.yaw -= 0.015;
+          s.hovered = null;
+          propsRef.current.onHover(null);
         } else propsRef.current.onSelect(hit.project);
       }
       s.dragging = false;
@@ -423,6 +512,8 @@ function GlobeCanvas({ projects, onHover, onSelect }) {
       const s = stateRef.current;
       s.interacted = true;
       s.zoom = Math.max(0.86, Math.min(1.72, s.zoom - event.deltaY * 0.001));
+      s.hovered = null;
+      propsRef.current.onHover(null);
     };
 
     resize();
