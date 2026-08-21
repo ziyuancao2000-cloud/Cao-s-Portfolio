@@ -113,4 +113,28 @@ export const projects = [
     description:
       'Individual scope shown from a team proposal for small-scale landscape interventions at the Manship Artists Residency. This portion develops a bridge, viewing deck and site-specific benches that follow the quarry terrain, connect circulation around the rock wall and create distinct rooms for movement, viewing, rest and gathering.',
   },
+  {
+    id: 'jiulong-lake-quarry',
+    city: 'Ningbo',
+    country: 'China',
+    location: 'Jiulong Lake Quarry, Zhenhai District, Ningbo, Zhejiang, China',
+    lat: 30.037624,
+    lon: 121.543695,
+    title: 'From Urban Scar to Living Landscape',
+    subtitle: 'Regeneration Strategies for Jiulong Lake Quarry',
+    year: '2026',
+    type: 'Landscape Architecture · Ecological Restoration · Post-Industrial Landscape',
+    image: '/images/jiulong-lake-quarry/01-cover.png',
+    gallery: [
+      '/images/jiulong-lake-quarry/01-cover.png',
+      '/images/jiulong-lake-quarry/02-site-analysis.png',
+      '/images/jiulong-lake-quarry/03-design-framework.png',
+      '/images/jiulong-lake-quarry/04-gateway-plaza.png',
+      '/images/jiulong-lake-quarry/05-wetland-systems.png',
+      '/images/jiulong-lake-quarry/06-landscape-spaces.png',
+      '/images/jiulong-lake-quarry/07-summit-observation.png',
+    ],
+    description:
+      'Transforming an abandoned quarry into a living landscape, the project reconnects geology, water, habitat, and public life through ecological restoration, terraced planting, wetland systems, and a sequence of immersive paths and overlooks.',
+  },
 ];
