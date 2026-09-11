@@ -154,7 +154,7 @@ export default function App() {
 
           <div className="work-label">
             <span>Landscape Architecture /</span>
-            <span>Selected Works 2020—2026</span>
+            <span>Selected Works 2022—2026</span>
           </div>
           <p className="city-line">Based in Boston · Selected works worldwide</p>
           <p className="project-count">
