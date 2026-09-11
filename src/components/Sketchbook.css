@@ -1,0 +1,64 @@
+.sketchbook-page {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 156px clamp(36px, 4.35vw, 72px) 100px;
+  background: var(--ink);
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
+.sketchbook-header { margin: 0 0 clamp(48px, 6vw, 96px); }
+.sketchbook-header h1 {
+  margin: 0;
+  font-size: clamp(32px, 5.5vw, 84px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -.045em;
+}
+.sketchbook-header p { margin: 24px 0 0; color: var(--muted); font-size: 12px; line-height: 1.8; }
+.sketchbook-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: clamp(48px, 7vw, 112px) clamp(32px, 5vw, 80px);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.sketchbook-item { display: block; width: 100%; min-width: 0; padding: 0; border: 0; border-radius: 0; background: transparent; cursor: zoom-in; }
+.sketchbook-item img { display: block; width: 100%; height: auto; }
+.sketchbook-item:focus-visible { outline: 1px solid var(--bone); outline-offset: 8px; }
+.sketchbook-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 16px;
+  height: 100dvh;
+  padding: max(68px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  background: #0b0b0a;
+  overscroll-behavior: contain;
+}
+.sketchbook-viewer button { min-height: 44px; border: 0; background: transparent; cursor: pointer; font-size: 11px; letter-spacing: .08em; }
+.sketchbook-viewer button:focus-visible { outline: 1px solid var(--bone); outline-offset: 3px; }
+.sketchbook-viewer-close { position: absolute; top: max(12px, env(safe-area-inset-top)); right: max(24px, env(safe-area-inset-right)); }
+.sketchbook-viewer-close span { margin-left: 12px; font-size: 22px; vertical-align: middle; }
+.sketchbook-viewer-stage { display: flex; align-items: center; justify-content: center; min-height: 0; min-width: 0; pointer-events: none; }
+.sketchbook-viewer-stage img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.sketchbook-viewer-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: min(100%, 560px); margin: 0 auto; }
+.sketchbook-viewer-controls span { font-size: 11px; color: var(--muted); }
+.page-transition--leaving > .sketchbook-page,
+.page-transition--entering > .sketchbook-page { pointer-events: none; will-change: opacity, transform, filter; }
+.page-transition--leaving.page-motion--forward > .sketchbook-page { animation: page-forward-out 620ms cubic-bezier(.4,0,.2,1) both; }
+.page-transition--leaving.page-motion--backward > .sketchbook-page { animation: page-backward-out 620ms cubic-bezier(.4,0,.2,1) both; }
+.page-transition--entering.page-motion--forward > .sketchbook-page { animation: page-forward-in 900ms cubic-bezier(.16,1,.3,1) both; }
+.page-transition--entering.page-motion--backward > .sketchbook-page { animation: page-backward-in 900ms cubic-bezier(.16,1,.3,1) both; }
+@media (max-width: 900px) {
+  .sketchbook-page { padding: 110px 24px 64px; }
+}
+@media (max-width: 600px) {
+  .sketchbook-grid { grid-template-columns: minmax(0, 1fr); gap: 48px; }
+  .sketchbook-viewer { padding-left: 12px; padding-right: 12px; }
+}

@@ -3,17 +3,19 @@ import GlobeCanvas from './components/GlobeCanvas';
 import ProjectPreview from './components/ProjectPreview';
 import ProjectDetail from './components/ProjectDetail';
 import ProjectsIndex from './components/ProjectsIndex';
+import SketchbookPage from './components/SketchbookPage';
 import AboutPage from './components/AboutPage';
 import ContactPage from './components/ContactPage';
 import { projects } from './data/projects';
 
-const PAGE_ORDER = ['index', 'projects', 'about', 'contact'];
-const PAGE_HASH = { index: '#home', projects: '#projects', about: '#about', contact: '#contact' };
+const PAGE_ORDER = ['index', 'projects', 'sketchbook', 'about', 'contact'];
+const PAGE_HASH = { index: '#home', projects: '#projects', sketchbook: '#sketchbook', about: '#about', contact: '#contact' };
 const CITY_COUNT = new Set(projects.map((project) => project.clusterCity ?? project.city)).size;
 
 export default function App() {
   const [page, setPage] = useState(() => {
     if (window.location.hash === '#projects') return 'projects';
+    if (window.location.hash === '#sketchbook') return 'sketchbook';
     if (window.location.hash === '#about') return 'about';
     if (window.location.hash === '#contact') return 'contact';
     return 'index';
@@ -65,6 +67,10 @@ export default function App() {
     event.preventDefault();
     navigateTo('projects');
   }, [navigateTo]);
+  const showSketchbook = useCallback((event) => {
+    event.preventDefault();
+    navigateTo('sketchbook');
+  }, [navigateTo]);
   const showAbout = useCallback((event) => {
     event.preventDefault();
     navigateTo('about');
@@ -89,7 +95,7 @@ export default function App() {
       if (page === 'index') {
         if (event.clientX > window.innerWidth * .34) return;
       } else {
-        const selector = page === 'projects' ? '.projects-index' : page === 'about' ? '.about-page' : '.contact-page';
+        const selector = page === 'projects' ? '.projects-index' : page === 'sketchbook' ? '.sketchbook-page' : page === 'about' ? '.about-page' : '.contact-page';
         const scroller = shell.querySelector(selector);
         if (!scroller) return;
         const atTop = scroller.scrollTop <= 2;
@@ -129,6 +135,7 @@ export default function App() {
         <nav aria-label="Primary navigation">
           <a className={page === 'index' ? 'is-active' : ''} href="#home" onClick={showIndex}>Index</a>
           <a className={page === 'projects' ? 'is-active' : ''} href="#projects" onClick={showProjects}>Projects</a>
+          <a className={page === 'sketchbook' ? 'is-active' : ''} href="#sketchbook" onClick={showSketchbook}>SKETCHBOOK</a>
           <a className={page === 'about' ? 'is-active' : ''} href="#about" onClick={showAbout}>About</a>
           <a className={page === 'contact' ? 'is-active' : ''} href="#contact" onClick={showContact}>Contact</a>
         </nav>
@@ -157,6 +164,8 @@ export default function App() {
         </section>
       ) : page === 'projects' ? (
         <ProjectsIndex projects={projects} onSelect={setSelectedProject} />
+      ) : page === 'sketchbook' ? (
+        <SketchbookPage />
       ) : page === 'about' ? (
         <AboutPage />
       ) : (
