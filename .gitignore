@@ -8,5 +8,7 @@ dist/
 outputs/
 work/
 .env*
+.dev.vars
+.dev.vars.*
 .deploy-source/
 
